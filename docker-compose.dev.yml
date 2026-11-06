@@ -1,0 +1,34 @@
+# Dev overrides: live code mounts, Flask debug server, simulator DB accounts, and every
+# published port bound to localhost only (the Werkzeug debugger must never be reachable
+# from the network).
+services:
+  web:
+    command: ["flask", "run", "--host", "0.0.0.0", "--port", "8000", "--debug"]
+    volumes:
+      - .:/app
+      - uploads:/data/uploads
+
+  worker:
+    volumes:
+      - .:/app
+
+  migrate:
+    volumes:
+      - .:/app
+
+  db:
+    environment:
+      SIM_RW_PASSWORD: ${SIM_RW_PASSWORD:?set SIM_RW_PASSWORD in .env}
+      SIM_RO_PASSWORD: ${SIM_RO_PASSWORD:?set SIM_RO_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:3306:3306"
+
+  redis:
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  nginx:
+    ports: !override
+      - "127.0.0.1:8443:443"
+    volumes:
+      - ./app/static:/usr/share/nginx/static:ro

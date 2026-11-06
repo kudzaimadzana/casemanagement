@@ -1,0 +1,65 @@
+[project]
+name = "fmh-mccms"
+version = "0.1.0"
+description = "First Mutual Health Managed Care Case Management System"
+requires-python = ">=3.12"
+# Exact pins live in requirements.txt / requirements-dev.txt; these are the supported ranges.
+dependencies = [
+    "Flask>=3.1,<4",
+    "Flask-SQLAlchemy>=3.1",
+    "SQLAlchemy>=2.0",
+    "Flask-Migrate>=4.0",
+    "Flask-Login>=0.6",
+    "argon2-cffi>=23.1",
+    "Flask-Session>=0.8",
+    "redis>=5.0",
+    "Flask-WTF>=1.2",
+    "flask-talisman>=1.1",
+    "Flask-Limiter>=3.8",
+    "APScheduler>=3.10,<4",
+    "PyMySQL>=1.1",
+    "cryptography>=42",
+    "python-dotenv>=1.0",
+    "PyYAML>=6.0",
+    "gunicorn>=22",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-cov", "fakeredis", "ruff", "black"]
+# Source DB drivers, installed only where the FMH engine needs them (PRD §4).
+mssql = ["pyodbc"]
+oracle = ["oracledb"]
+postgres = ["psycopg[binary]"]
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "C4", "ARG"]
+ignore = ["S101"]  # assert is fine; tests use it and app code doesn't rely on it
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "ARG"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers"
+filterwarnings = ["error::DeprecationWarning:app.*"]
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = false
+warn_unused_ignores = true
+exclude = ["migrations/"]

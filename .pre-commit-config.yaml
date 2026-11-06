@@ -1,0 +1,15 @@
+# Local hooks use the pinned tools from requirements-dev.txt, so versions never drift and
+# no network access is needed. Install once with: pre-commit install
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff
+        entry: python -m ruff check --fix
+        language: system
+        types: [python]
+      - id: black
+        name: black
+        entry: python -m black
+        language: system
+        types: [python]

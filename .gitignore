@@ -1,0 +1,29 @@
+# Secrets: only the examples are committed
+.env
+.env.*
+!.env.example
+!.env.compose.example
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Local data
+/data/
+/instance/
+*.log
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+~$*

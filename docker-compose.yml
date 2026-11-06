@@ -1,0 +1,99 @@
+# Production-like stack. Compose-level settings (which app env file, DB bootstrap passwords)
+# come from ./.env, see .env.compose.example. App settings come from .env.{profile}.
+name: mccms
+
+x-app: &app
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+  image: mccms-app:latest
+  env_file: ${MCCMS_ENV_FILE:-.env.production}
+  restart: unless-stopped
+  networks: [backend]
+
+services:
+  web:
+    <<: *app
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  worker:
+    <<: *app
+    command: ["python", "worker.py"]
+    healthcheck: { disable: true }
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  # One-off: docker compose run --rm migrate
+  migrate:
+    <<: *app
+    command: ["flask", "db", "upgrade"]
+    restart: "no"
+    healthcheck: { disable: true }
+    profiles: ["tools"]
+    depends_on:
+      db: { condition: service_healthy }
+
+  db:
+    image: mysql:8.0
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: mccms
+      MYSQL_APP_PASSWORD: ${MYSQL_APP_PASSWORD:?set MYSQL_APP_PASSWORD in .env}
+      MYSQL_MIGRATOR_PASSWORD: ${MYSQL_MIGRATOR_PASSWORD:?set MYSQL_MIGRATOR_PASSWORD in .env}
+      TZ: Africa/Harare
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+    networks: [backend]
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}"]
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD}
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    restart: unless-stopped
+    networks: [backend]
+
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx.Dockerfile
+    image: mccms-nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Production: replace with a bind mount of the real server.crt / server.key.
+      - nginx-certs:/etc/nginx/certs
+    depends_on: [web]
+    restart: unless-stopped
+    networks: [backend]
+
+networks:
+  backend:
+
+volumes:
+  mysql-data:
+  redis-data:
+  uploads:
+  nginx-certs:

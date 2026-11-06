@@ -1,0 +1,8 @@
+# Normalise to LF in the repo; shell scripts and container config must stay LF on checkout
+# too, because they run inside Linux containers even when edited on Windows.
+* text=auto eol=lf
+*.sh text eol=lf
+*.ps1 text eol=crlf
+*.docx binary
+*.png binary
+*.jpg binary
